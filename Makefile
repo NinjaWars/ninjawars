@@ -1,6 +1,6 @@
 .PHONY: all ci pre-test test test-main test-integration test-unit test-quick test-functional test-js post-test clean dep build install install-system dist-clean db db-fixtures
 
-DOMAIN=http://nw.local/
+DOMAIN=https://nw.local/
 VENDOR=./vendor/
 COMPOSER=./composer.phar
 CC_DIR=./cc
@@ -43,13 +43,16 @@ build: dep
 dep:
 	@$(COMPOSER) install
 
+check: pre-test
+
 js-deps:
-	npm install
+	yarn install
 
 install: build start-chat writable
 	@echo "Don't forget to update webserver configs as necessary."
 	@echo "Including updating the php to retain login sessions longer."
 	cp -u -p ./deploy/resources.build.php ./deploy/resources.php
+	echo "Note that this does not overwrite existing resources.php"
 	php ./deploy/check.php
 	echo "Check that the webserver user has permissions to the script!"
 
@@ -74,7 +77,7 @@ install-system:
 
 install-python:
 	python3 -m venv .venv
-	source .venv/bin/activate
+	. .venv/bin/activate
 	pip3 install -r requirements.txt
 
 install-webserver:
@@ -89,7 +92,7 @@ start-chat:
 	nohup php bin/chat-server.php > ./deploy/resources/logs/ninjawars.chat-server.log 2>&1 &
 
 browse:
-	xdg-open http://localhost:8765
+	xdg-open https://localhost:8765
 
 
 all: build test-unit db python-build test
@@ -140,7 +143,7 @@ test-functional:
 	python3 -m pytest deploy/tests/functional/
 
 test-js:
-	npm test
+	yarn test
 
 test-ratchets:
 	#split out for ci for now
@@ -175,6 +178,8 @@ dist-clean: clean
 
 clear-cache:
 	php ./deploy/lib/control/util/clear_cache.php
+
+db-init-all: db-init db-init-roles db-init-grants db
 
 db-init:
 	# Fail on existing database
